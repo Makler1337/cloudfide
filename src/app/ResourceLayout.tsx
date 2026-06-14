@@ -1,4 +1,5 @@
 import { Outlet, useParams } from 'react-router-dom'
+
 import { CompletedBufferProvider } from '../features/completed-buffer/CompletedBufferContext'
 
 export function ResourceLayout() {

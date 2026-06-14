@@ -1,4 +1,5 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom'
+
 import { RootLayout } from './RootLayout'
 import { ResourceLayout } from './ResourceLayout'
 import { ResourcesListPage } from '../features/resources-list/ResourcesListPage'

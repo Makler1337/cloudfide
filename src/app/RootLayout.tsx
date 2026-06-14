@@ -1,5 +1,6 @@
 import { Link, Outlet } from 'react-router-dom'
 import styled from 'styled-components'
+
 import { ErrorBoundary } from '../shared/components/ErrorBoundary'
 
 export function RootLayout() {

@@ -1,4 +1,5 @@
 import { useContext } from 'react'
+
 import { CompletedBufferContext, type BufferValue } from './context'
 
 export function useCompletedBuffer(): BufferValue {
