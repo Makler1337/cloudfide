@@ -1,11 +1,15 @@
 import { Link, useParams } from 'react-router-dom'
 import styled from 'styled-components'
 
-import { Card } from '../../design-system'
+import { Badge, Card } from '../../design-system'
 import { useResource } from '../../hooks/resources'
 import { useCompletedBuffer } from '../completed-buffer/useCompletedBuffer'
 import { StatusBadge } from '../../shared/components/StatusBadge'
 import { formatDateTime } from '../../shared/formatDate'
+import {
+  isBasicInfoComplete,
+  isProjectDetailsComplete,
+} from '../../domain/completion'
 import type { BasicInfo, ProjectDetails } from '../../domain/types'
 
 export function ResourceDetailsPage() {
@@ -54,6 +58,7 @@ export function ResourceDetailsPage() {
       <Section>
         <SectionHeader>
           <h2>Basic Info</h2>
+          <CompletionBadge complete={isBasicInfoComplete(basicInfo)} />
         </SectionHeader>
         <Card>
           <DefinitionList>
@@ -69,6 +74,7 @@ export function ResourceDetailsPage() {
       <Section>
         <SectionHeader>
           <h2>Project Details</h2>
+          <CompletionBadge complete={isProjectDetailsComplete(projectDetails)} />
         </SectionHeader>
         <Card>
           <DefinitionList>
@@ -104,6 +110,14 @@ function Row({
       <Term>{label}</Term>
       <Definition $multiline={multiline}>{value || '—'}</Definition>
     </RowWrapper>
+  )
+}
+
+function CompletionBadge({ complete }: { complete: boolean }) {
+  return (
+    <Badge variant={complete ? 'success' : 'warning'}>
+      {complete ? 'Complete' : 'Incomplete'}
+    </Badge>
   )
 }
 
@@ -152,6 +166,11 @@ const Section = styled.section`
 `
 
 const SectionHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: ${({ theme }) => theme.spacing.sm};
+
   h2 {
     font-size: 1.125rem;
   }

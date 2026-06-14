@@ -26,11 +26,3 @@ export function canProvision(resource: Resource): boolean {
     isProjectDetailsComplete(resource.projectDetails)
   )
 }
-
-export function canEditProjectDetails(resource: Resource): boolean {
-  // Draft: backend requires Basic Info to be complete first.
-  // Completed: edits go through the local buffer, no backend gate.
-  return (
-    resource.status === 'completed' || isBasicInfoComplete(resource.basicInfo)
-  )
-}
