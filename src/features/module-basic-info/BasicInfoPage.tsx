@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import styled from 'styled-components'
 import { Card } from '../../design-system'
 import { useResource, useUpdateBasicInfo } from '../../hooks/resources'
+import { useCompletedBuffer } from '../completed-buffer/useCompletedBuffer'
 import { ApiError } from '../../api/errors'
 import type { BasicInfo, BasicInfoFormValues } from '../../domain/types'
 import { BasicInfoForm } from './BasicInfoForm'
@@ -11,6 +12,7 @@ export function BasicInfoPage() {
   const { resourceId = '' } = useParams<{ resourceId: string }>()
   const navigate = useNavigate()
   const resourceQuery = useResource(resourceId)
+  const buffer = useCompletedBuffer()
   const updateMutation = useUpdateBasicInfo(resourceId)
   const [submitError, setSubmitError] = useState<string | null>(null)
 
@@ -18,8 +20,12 @@ export function BasicInfoPage() {
 
   const initialValues = useMemo<BasicInfoFormValues | null>(() => {
     if (!resourceQuery.data) return null
-    return toFormValues(resourceQuery.data.basicInfo)
-  }, [resourceQuery.data])
+    const source =
+      resourceQuery.data.status === 'completed' && buffer.basicInfo
+        ? buffer.basicInfo
+        : resourceQuery.data.basicInfo
+    return toFormValues(source)
+  }, [resourceQuery.data, buffer.basicInfo])
 
   if (resourceQuery.isLoading) return <Notice>Loading…</Notice>
   if (resourceQuery.isError || !resourceQuery.data || !initialValues) {
@@ -31,8 +37,16 @@ export function BasicInfoPage() {
     )
   }
 
+  const resource = resourceQuery.data
+  const isCompleted = resource.status === 'completed'
+
   const handleSubmit = async (values: BasicInfoFormValues) => {
     setSubmitError(null)
+    if (isCompleted) {
+      buffer.setBasicInfo(values)
+      navigate(overviewHref)
+      return
+    }
     try {
       await updateMutation.mutateAsync(values)
       navigate(overviewHref)
@@ -46,14 +60,18 @@ export function BasicInfoPage() {
       <BackLink to={overviewHref}>← Back to overview</BackLink>
       <Heading>
         <h1>Basic Info</h1>
-        <Subtitle>Fill in Basic Info to unlock Project Details.</Subtitle>
+        <Subtitle>
+          {isCompleted
+            ? 'Editing a completed resource — changes stay local until you save on the overview page.'
+            : 'Fill in Basic Info to unlock Project Details.'}
+        </Subtitle>
       </Heading>
       <FormCard>
         <BasicInfoForm
           initialValues={initialValues}
           onSubmit={handleSubmit}
           onCancel={() => navigate(overviewHref)}
-          submitLabel="Save"
+          submitLabel={isCompleted ? 'Apply' : 'Save'}
           submitError={submitError}
         />
       </FormCard>

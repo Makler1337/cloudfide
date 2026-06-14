@@ -2,7 +2,12 @@ import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import styled from 'styled-components'
 import { Badge, Button, Card } from '../../design-system'
-import { useProvisionResource, useResource } from '../../hooks/resources'
+import {
+  useProvisionResource,
+  useReplaceResource,
+  useResource,
+} from '../../hooks/resources'
+import { useCompletedBuffer } from '../completed-buffer/useCompletedBuffer'
 import { ConfirmDialog } from '../../shared/components/ConfirmDialog'
 import { StatusBadge } from '../../shared/components/StatusBadge'
 import { formatDateTime } from '../../shared/formatDate'
@@ -12,11 +17,14 @@ import {
   isProjectDetailsComplete,
 } from '../../domain/completion'
 import { ApiError } from '../../api/errors'
+import type { Resource } from '../../domain/types'
 
 export function ResourceOverviewPage() {
   const { resourceId = '' } = useParams<{ resourceId: string }>()
   const resourceQuery = useResource(resourceId)
+  const buffer = useCompletedBuffer()
   const provisionMutation = useProvisionResource(resourceId)
+  const replaceMutation = useReplaceResource(resourceId)
   const [isProvisionConfirmOpen, setProvisionConfirmOpen] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
 
@@ -35,6 +43,7 @@ export function ResourceOverviewPage() {
 
   const resource = resourceQuery.data
   const isDraft = resource.status === 'draft'
+  const isCompleted = resource.status === 'completed'
   const basicInfoDone = isBasicInfoComplete(resource.basicInfo)
   const projectDetailsDone = isProjectDetailsComplete(resource.projectDetails)
   const projectDetailsLocked = isDraft && !basicInfoDone
@@ -46,6 +55,17 @@ export function ResourceOverviewPage() {
       setProvisionConfirmOpen(false)
     } catch (error) {
       setActionError(toMessage(error, 'Failed to provision resource'))
+    }
+  }
+
+  const handleSaveBuffer = async () => {
+    setActionError(null)
+    try {
+      const payload = buildReplacePayload(resource, buffer.basicInfo, buffer.projectDetails)
+      await replaceMutation.mutateAsync(payload)
+      buffer.clear()
+    } catch (error) {
+      setActionError(toMessage(error, 'Failed to save changes'))
     }
   }
 
@@ -67,18 +87,44 @@ export function ResourceOverviewPage() {
         </Link>
       </Header>
 
+      {isCompleted && buffer.hasChanges ? (
+        <BufferBanner role="status">
+          <div>
+            <strong>Unsaved changes</strong>
+            <p>
+              Edits are kept locally until you save. They will be lost if you refresh the
+              page.
+            </p>
+          </div>
+          <BufferActions>
+            <Button
+              variant="secondary"
+              onClick={buffer.clear}
+              disabled={replaceMutation.isPending}
+            >
+              Discard
+            </Button>
+            <Button onClick={handleSaveBuffer} disabled={replaceMutation.isPending}>
+              {replaceMutation.isPending ? 'Saving…' : 'Save changes'}
+            </Button>
+          </BufferActions>
+        </BufferBanner>
+      ) : null}
+
       {actionError ? <ErrorBanner role="alert">{actionError}</ErrorBanner> : null}
 
       <Modules>
         <ModuleCard
           title="Basic Info"
           done={basicInfoDone}
+          buffered={isCompleted && buffer.basicInfo !== null}
           editHref={`/resources/${resourceId}/basic-info`}
           editLabel={basicInfoDone ? 'Edit' : 'Fill in'}
         />
         <ModuleCard
           title="Project Details"
           done={projectDetailsDone}
+          buffered={isCompleted && buffer.projectDetails !== null}
           locked={projectDetailsLocked}
           lockedReason="Complete Basic Info first"
           editHref={`/resources/${resourceId}/project-details`}
@@ -116,6 +162,7 @@ export function ResourceOverviewPage() {
 interface ModuleCardProps {
   title: string
   done: boolean
+  buffered?: boolean
   locked?: boolean
   lockedReason?: string
   editHref: string
@@ -125,6 +172,7 @@ interface ModuleCardProps {
 function ModuleCard({
   title,
   done,
+  buffered,
   locked,
   lockedReason,
   editHref,
@@ -138,6 +186,7 @@ function ModuleCard({
           {locked ? 'Locked' : done ? 'Complete' : 'Incomplete'}
         </Badge>
       </ModuleHeader>
+      {buffered ? <BufferedHint>Has unsaved changes</BufferedHint> : null}
       {locked ? <LockedHint>{lockedReason}</LockedHint> : null}
       <ModuleActions>
         {locked ? (
@@ -152,6 +201,20 @@ function ModuleCard({
       </ModuleActions>
     </Card>
   )
+}
+
+function buildReplacePayload(
+  resource: Resource,
+  bufferedBasicInfo: Resource['basicInfo'] | null,
+  bufferedProjectDetails: Resource['projectDetails'] | null,
+) {
+  const basicInfo = bufferedBasicInfo ?? resource.basicInfo
+  const projectDetails = bufferedProjectDetails ?? resource.projectDetails
+  return {
+    name: basicInfo.resourceName || resource.name,
+    basicInfo,
+    projectDetails,
+  }
 }
 
 function toMessage(error: unknown, fallback: string): string {
@@ -197,6 +260,32 @@ const Meta = styled.div`
   flex-wrap: wrap;
 `
 
+const BufferBanner = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: ${({ theme }) => theme.spacing.lg};
+  background: ${({ theme }) => theme.colors.accentSoft};
+  padding: ${({ theme }) => theme.spacing.md} ${({ theme }) => theme.spacing.lg};
+  border-radius: ${({ theme }) => theme.radii.md};
+  flex-wrap: wrap;
+
+  strong {
+    color: ${({ theme }) => theme.colors.inkStrong};
+  }
+
+  p {
+    color: ${({ theme }) => theme.colors.inkMuted};
+    font-size: 0.875rem;
+    margin-top: ${({ theme }) => theme.spacing.xs};
+  }
+`
+
+const BufferActions = styled.div`
+  display: flex;
+  gap: ${({ theme }) => theme.spacing.sm};
+`
+
 const ErrorBanner = styled.div`
   background: rgba(180, 71, 27, 0.08);
   color: ${({ theme }) => theme.colors.warning};
@@ -229,6 +318,12 @@ const ModuleActions = styled.div`
   margin-top: ${({ theme }) => theme.spacing.lg};
   display: flex;
   justify-content: flex-end;
+`
+
+const BufferedHint = styled.p`
+  margin-top: ${({ theme }) => theme.spacing.sm};
+  color: ${({ theme }) => theme.colors.accent};
+  font-size: 0.875rem;
 `
 
 const LockedHint = styled.p`

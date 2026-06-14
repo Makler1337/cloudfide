@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import styled from 'styled-components'
 import { Card } from '../../design-system'
 import { useResource, useUpdateProjectDetails } from '../../hooks/resources'
+import { useCompletedBuffer } from '../completed-buffer/useCompletedBuffer'
 import { ApiError } from '../../api/errors'
 import { isBasicInfoComplete } from '../../domain/completion'
 import type { ProjectDetails, ProjectDetailsFormValues } from '../../domain/types'
@@ -12,6 +13,7 @@ export function ProjectDetailsPage() {
   const { resourceId = '' } = useParams<{ resourceId: string }>()
   const navigate = useNavigate()
   const resourceQuery = useResource(resourceId)
+  const buffer = useCompletedBuffer()
   const updateMutation = useUpdateProjectDetails(resourceId)
   const [submitError, setSubmitError] = useState<string | null>(null)
 
@@ -19,8 +21,12 @@ export function ProjectDetailsPage() {
 
   const initialValues = useMemo<ProjectDetailsFormValues | null>(() => {
     if (!resourceQuery.data) return null
-    return toFormValues(resourceQuery.data.projectDetails)
-  }, [resourceQuery.data])
+    const source =
+      resourceQuery.data.status === 'completed' && buffer.projectDetails
+        ? buffer.projectDetails
+        : resourceQuery.data.projectDetails
+    return toFormValues(source)
+  }, [resourceQuery.data, buffer.projectDetails])
 
   // Mirror the backend rule: in draft mode, this form is gated until Basic Info is done.
   const isLockedInDraft = useMemo(() => {
@@ -48,8 +54,15 @@ export function ProjectDetailsPage() {
   }
   if (isLockedInDraft) return null
 
+  const isCompleted = resourceQuery.data.status === 'completed'
+
   const handleSubmit = async (values: ProjectDetailsFormValues) => {
     setSubmitError(null)
+    if (isCompleted) {
+      buffer.setProjectDetails(values)
+      navigate(overviewHref)
+      return
+    }
     try {
       await updateMutation.mutateAsync(values)
       navigate(overviewHref)
@@ -63,14 +76,18 @@ export function ProjectDetailsPage() {
       <BackLink to={overviewHref}>← Back to overview</BackLink>
       <Heading>
         <h1>Project Details</h1>
-        <Subtitle>Fill in the project details to enable provisioning.</Subtitle>
+        <Subtitle>
+          {isCompleted
+            ? 'Editing a completed resource — changes stay local until you save on the overview page.'
+            : 'Fill in the project details to enable provisioning.'}
+        </Subtitle>
       </Heading>
       <FormCard>
         <ProjectDetailsForm
           initialValues={initialValues}
           onSubmit={handleSubmit}
           onCancel={() => navigate(overviewHref)}
-          submitLabel="Save"
+          submitLabel={isCompleted ? 'Apply' : 'Save'}
           submitError={submitError}
         />
       </FormCard>
