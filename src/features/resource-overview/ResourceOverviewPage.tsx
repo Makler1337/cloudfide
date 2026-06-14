@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import styled from 'styled-components'
 import { Badge, Button, Card } from '../../design-system'
 import {
@@ -21,6 +21,7 @@ import type { Resource } from '../../domain/types'
 
 export function ResourceOverviewPage() {
   const { resourceId = '' } = useParams<{ resourceId: string }>()
+  const navigate = useNavigate()
   const resourceQuery = useResource(resourceId)
   const buffer = useCompletedBuffer()
   const provisionMutation = useProvisionResource(resourceId)
@@ -49,10 +50,13 @@ export function ResourceOverviewPage() {
   const projectDetailsLocked = isDraft && !basicInfoDone
 
   const handleProvision = async () => {
+    // Close the dialog before awaiting so a fast double-click on Confirm
+    // cannot enqueue a second mutation (the button is gone by then).
+    setProvisionConfirmOpen(false)
     setActionError(null)
     try {
       await provisionMutation.mutateAsync()
-      setProvisionConfirmOpen(false)
+      navigate('/resources')
     } catch (error) {
       setActionError(toMessage(error, 'Failed to provision resource'))
     }

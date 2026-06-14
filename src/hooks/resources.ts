@@ -72,6 +72,11 @@ export function useProvisionResource(id: string) {
   return useMutation({
     mutationFn: () => provisionResource(id),
     onSuccess: ({ resource }) => syncResourceCaches(queryClient, id, resource),
+    // If the server rejects (e.g. a racing double-fire that already completed
+    // the resource), refetch so the UI reflects the truth instead of stale state.
+    onError: () => {
+      queryClient.invalidateQueries({ queryKey: resourceKeys.detail(id) })
+    },
   })
 }
 
@@ -80,6 +85,9 @@ export function useReplaceResource(id: string) {
   return useMutation({
     mutationFn: (data: ResourcePayload) => replaceResource(id, data),
     onSuccess: (resource) => syncResourceCaches(queryClient, id, resource),
+    onError: () => {
+      queryClient.invalidateQueries({ queryKey: resourceKeys.detail(id) })
+    },
   })
 }
 
