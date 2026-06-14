@@ -1,5 +1,6 @@
 import { Link, Outlet } from 'react-router-dom'
 import styled from 'styled-components'
+import { ErrorBoundary } from '../shared/components/ErrorBoundary'
 
 export function RootLayout() {
   return (
@@ -8,7 +9,9 @@ export function RootLayout() {
         <Brand to="/resources">Resources</Brand>
       </Header>
       <Main>
-        <Outlet />
+        <ErrorBoundary>
+          <Outlet />
+        </ErrorBoundary>
       </Main>
     </Shell>
   )
