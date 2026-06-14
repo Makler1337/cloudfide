@@ -27,6 +27,10 @@ export function useResource(id: string | undefined) {
     queryKey: resourceKeys.detail(id ?? ''),
     queryFn: ({ signal }) => getResource(id as string, signal),
     enabled: Boolean(id),
+    // Always refetch on mount so navigating list -> detail can't show a stale
+    // status (e.g. a resource provisioned moments ago). Cached data still
+    // renders immediately; the refetch updates in the background.
+    refetchOnMount: 'always',
   })
 }
 
