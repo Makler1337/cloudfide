@@ -37,7 +37,7 @@ export function CreateResourceDrawer({ isOpen, onClose }: CreateResourceDrawerPr
     try {
       const resource = await createMutation.mutateAsync(resourceName)
       onClose()
-      navigate(`/resources/${resource.resourceId}`)
+      navigate(`/resources/${resource._id}`)
     } catch (error) {
       if (error instanceof ApiError) {
         setError('resourceName', { type: 'server', message: error.message })

@@ -39,7 +39,6 @@ export function ResourceDetailsPage() {
         <Title>{resource.name}</Title>
         <Meta>
           <StatusBadge status={resource.status} />
-          <span>ID #{resource.resourceId}</span>
           <span>Created {formatDateTime(resource.createdAt)}</span>
           <span>Updated {formatDateTime(resource.updatedAt)}</span>
         </Meta>

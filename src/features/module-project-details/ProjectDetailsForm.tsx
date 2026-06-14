@@ -2,7 +2,8 @@ import { useEffect } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import styled from 'styled-components'
-import { Button, CheckboxGroup, Input, Select } from '../../design-system'
+import { Button, Input, Select } from '../../design-system'
+import { MultiCheckList } from '../../shared/components/MultiCheckList'
 import {
   CATEGORY_VALUES,
   TEAM_MEMBER_VALUES,
@@ -71,9 +72,9 @@ export function ProjectDetailsForm({
         control={control}
         name="options"
         render={({ field }) => (
-          <CheckboxGroup
+          <MultiCheckList
             label="Team members"
-            options={[...TEAM_MEMBER_VALUES]}
+            options={TEAM_MEMBER_VALUES}
             value={field.value}
             onChange={field.onChange}
             error={errors.options?.message}

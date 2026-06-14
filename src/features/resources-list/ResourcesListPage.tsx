@@ -6,6 +6,7 @@ import { useDeleteResource, useResourcesList } from '../../hooks/resources'
 import { useDebounce } from '../../shared/hooks/useDebounce'
 import { ConfirmDialog } from '../../shared/components/ConfirmDialog'
 import { StatusBadge } from '../../shared/components/StatusBadge'
+import { PriorityBadge } from '../../shared/components/PriorityBadge'
 import { formatDateTime } from '../../shared/formatDate'
 import type { Resource, ResourceStatus } from '../../domain/types'
 import type { ResourcesListQuery } from '../../api/types'
@@ -57,7 +58,7 @@ export function ResourcesListPage() {
 
   const handleDelete = async () => {
     if (!pendingDeletion) return
-    await deleteMutation.mutateAsync(String(pendingDeletion.resourceId))
+    await deleteMutation.mutateAsync(pendingDeletion._id)
     setPendingDeletion(null)
   }
 
@@ -117,6 +118,7 @@ export function ResourcesListPage() {
               <tr>
                 <th>Name</th>
                 <th>Status</th>
+                <th>Priority</th>
                 <th>Created</th>
                 <th>Updated</th>
                 <Th aria-label="Actions" />
@@ -126,12 +128,15 @@ export function ResourcesListPage() {
               {items.map((resource) => (
                 <tr key={resource._id}>
                   <td>
-                    <NameLink to={`/resources/${resource.resourceId}`}>
+                    <NameLink to={`/resources/${resource._id}`}>
                       {resource.name}
                     </NameLink>
                   </td>
                   <td>
                     <StatusBadge status={resource.status} />
+                  </td>
+                  <td>
+                    <PriorityBadge priority={resource.basicInfo.priority} />
                   </td>
                   <td>{formatDateTime(resource.createdAt)}</td>
                   <td>{formatDateTime(resource.updatedAt)}</td>
